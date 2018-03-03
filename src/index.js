@@ -53,11 +53,11 @@ class Namecheap {
       .then(resp => resp.text())
       .then(text => parse(text))
       .then(data => {
-        let response = data['ApiResponse']
-        if (response.Errors.length) {
+        let response = data.ApiResponse
+        if (response.Errors.length && response.Errors[0]) {
           return Promise.reject(response.Errors)
         }
-        return response
+        return response.CommandResponse
       })
   }
 
@@ -101,7 +101,7 @@ class Users extends Namecheap {
 class SSL extends Namecheap {}
 class Whoisguard extends Namecheap {}
 
-const classes = {
+const baseMethods = {
   domains: Domains,
   users: Users,
   ssl: SSL,
@@ -110,11 +110,14 @@ const classes = {
 
 commands.forEach(command => {
   let path = command.split('.')
-  let requiredParams = get(schema, path).filter(p => p.required === 'Yes')
+  let requiredParams = get(schema, path).filter(p =>
+    p.required === 'Yes' && p.name.indexOf('.') < 0
+  )
 
-  let base = classes[path.shift()]
+  let base = baseMethods[path.shift()]
+  let methodName = path[path.length - 1]
 
-  function promise (params = {}) {
+  base.prototype[methodName] = function (params = {}) {
     let errors = []
     requiredParams.forEach(({ name, description }) => {
       if (!this.config[name] && !params[name]) {
@@ -128,14 +131,6 @@ commands.forEach(command => {
     }
     this.config.Command = 'namecheap.' + command
     return this.request(params)
-  }
-
-  if (path.length > 1) {
-    let [methodName, childMethodName] = path
-    let method = base.prototype[methodName]
-    method[childMethodName] = promise
-  } else {
-    base.prototype[path[0]] = promise
   }
 })
 
