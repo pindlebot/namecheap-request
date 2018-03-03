@@ -25,5 +25,8 @@
     "dotenv": "^5.0.1",
     "serialize-map": "^0.0.9",
     "standard": "^11.0.0"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
   }
 }
