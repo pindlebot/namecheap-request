@@ -2,7 +2,7 @@ const ip = require('./ip')
 const fetch = require('node-fetch')
 const parseString = require('xml2js').parseString
 const commands = require('./commands')
-const { schema } = require('./schema')
+const schema = require('./schema')
 
 const get = (obj, path) => path.reduce((acc, val) => 
   acc[val] ? acc[val] : undefined, obj)
@@ -14,7 +14,6 @@ function parse(xml) {
     })
   })
 }
-
 
 const createUrl = (params) => {
   let url = 'https://api.namecheap.com/xml.response?'
@@ -38,6 +37,9 @@ class Namecheap {
     }
 
     let mergedParams = {
+      ApiKey: process.env.NAMECHEAP_API_KEY,
+      UserName: process.env.NAMECHEAP_USER_NAME,
+      ApiUser: process.env.NAMECHEAP_API_USER,
       ClientIp: this.ipAddress,
       ...params,
       ...this.config
@@ -109,47 +111,33 @@ const classes = {
 
 commands.forEach(command => {
   let path = command.split('.')
-  let requiredParams = get(schema, path)
+  let requiredParams = get(schema, path).filter(p => p.required === 'Yes')
+ 
   let base = classes[path.shift()]
-  
-  // function run (...args) {
-  //  let params = {}
-  //  this.config.Command = 'namecheap.' + command
-  //  if (
-  //    args.length && 
-  //    args.length === 1 &&
-  //    typeof args[0] === 'object'
-  //  ) {
-  //    params = args[0]
-  //  } else {
-  //    let names = template
-  //      .map(t => t.name.trim())
-  //      .filter(name => !this.config[name])
-  //
-  //    params = args.reduce((acc, arg, i) =>
-  //      (acc[names[i]] = arg, acc)
-  //    , {})
-  //  }
 
-  //  return this.request(params)
-  //}
-
-  function run(params = {}) {
-    requiredParams.forEach(param => {
-      if (!this.config[param.name] && !params[param.name]) {
-        throw new Error(param.name + ' is required')
+  function promise(params = {}) {
+    let errors = []
+    requiredParams.forEach(({ name, description }) => {
+      if (!this.config[name] && !params[name]) {
+        description = description.slice(0,1).toLowerCase() + description.slice(1)
+        errors.push(`${name} is required. ${name} is a ${description}.`)
       }
     })
+
+    if (errors.length) {
+      errors.forEach(err => console.error(err))
+      throw new Error()
+    }
     this.config.Command = 'namecheap.' + command
     return this.request(params)
   }
 
   if(path.length > 1) {
-  	let [methodName, subMethodName] = path
+  	let [methodName, childMethodName] = path
     let method = base.prototype[methodName]
-    method[subMethodName] = run
+    method[childMethodName] = promise
   } else {
-    base.prototype[path[0]] = run
+    base.prototype[path[0]] = promise
   }
 })
 
