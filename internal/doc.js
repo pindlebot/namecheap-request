@@ -6,17 +6,17 @@ const fs = require('fs')
 let md = ''
 commands.forEach(command => {
   let inside = ''
-  if (command.indexOf('domains.dns') > - 1) {
+  if (command.indexOf('domains.dns') > -1) {
     inside = 'SLD, TLD'
   } else if (command.indexOf('domains.ns') > -1) {
     inside = 'SLD, TLD, Nameserver'
-  } else if(command.indexOf('domains.transfer') > -1) {
+  } else if (command.indexOf('domains.transfer') > -1) {
     inside = 'TransferID'
   }
   let title = command.split('.').join(`().`) + '()'
   md += '\n'
   md += `### ${title.trim()}\n`
-  
+
   let method = map.getIn(command)
   md += '#### Parameters\n'
   method.forEach(method => {

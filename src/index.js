@@ -4,12 +4,13 @@ const parseString = require('xml2js').parseString
 const commands = require('./commands')
 const schema = require('./schema')
 
-const get = (obj, path) => path.reduce((acc, val) => 
+const get = (obj, path) => path.reduce((acc, val) =>
   acc[val] ? acc[val] : undefined, obj)
 
-function parse(xml) {
+function parse (xml) {
   return new Promise((resolve, reject) => {
     parseString(xml, (err, data) => {
+      if (err) reject(err)
       resolve(data)
     })
   })
@@ -24,10 +25,8 @@ const createUrl = (params) => {
     }).join('&')
 }
 
-let ipAddress
-
 class Namecheap {
-  constructor(config = {}) {
+  constructor (config = {}) {
     this.config = config
   }
 
@@ -48,7 +47,7 @@ class Namecheap {
     if (!mergedParams.UserName) {
       mergedParams.UserName = mergedParams.ApiUser
     }
-    
+
     const url = createUrl(mergedParams)
     return fetch(url)
       .then(resp => resp.text())
@@ -62,12 +61,12 @@ class Namecheap {
       })
   }
 
-  merge(obj = {}) {
+  merge (obj = {}) {
     obj = Object.keys(obj).reduce((acc, val) =>
       typeof obj[val] !== 'undefined'
         ? (acc[val] = obj[val], acc)
-        : acc 
-    , {})
+        : acc
+      , {})
     this.config = {
       ...this.config,
       ...obj
@@ -81,8 +80,8 @@ class Domains extends Namecheap {
     return this
   }
 
-  ns(SLD, TLD, Nameserver) {
-    this.merge({ SLD,  TLD, Nameserver })
+  ns (SLD, TLD, Nameserver) {
+    this.merge({ SLD, TLD, Nameserver })
     return this
   }
 
@@ -112,14 +111,14 @@ const classes = {
 commands.forEach(command => {
   let path = command.split('.')
   let requiredParams = get(schema, path).filter(p => p.required === 'Yes')
- 
+
   let base = classes[path.shift()]
 
-  function promise(params = {}) {
+  function promise (params = {}) {
     let errors = []
     requiredParams.forEach(({ name, description }) => {
       if (!this.config[name] && !params[name]) {
-        description = description.slice(0,1).toLowerCase() + description.slice(1)
+        description = description.slice(0, 1).toLowerCase() + description.slice(1)
         errors.push(`${name} is required. ${name} is a ${description}.`)
       }
     })
@@ -132,8 +131,8 @@ commands.forEach(command => {
     return this.request(params)
   }
 
-  if(path.length > 1) {
-  	let [methodName, childMethodName] = path
+  if (path.length > 1) {
+    let [methodName, childMethodName] = path
     let method = base.prototype[methodName]
     method[childMethodName] = promise
   } else {
