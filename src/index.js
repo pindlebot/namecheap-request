@@ -125,7 +125,6 @@ commands.forEach(command => {
 
     if (errors.length) {
       errors.forEach(err => console.error(err))
-      throw new Error()
     }
     this.config.Command = 'namecheap.' + command
     return this.request(params)
