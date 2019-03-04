@@ -1,6 +1,8 @@
-const ip = require('./ip')
 const fetch = require('node-fetch')
+const set = require('lodash.set')
 const parseString = require('xml2js').parseString
+
+const ip = require('./ip')
 const commands = require('./commands')
 const schema = require('./schema')
 
@@ -109,15 +111,14 @@ const baseMethods = {
 }
 
 commands.forEach(command => {
-  let path = command.split('.')
-  let requiredParams = get(schema, path).filter(p =>
+  const path = command.split('.')
+  const requiredParams = get(schema, path).filter(p =>
     p.required === 'Yes' && p.name.indexOf('.') < 0
   )
 
-  let base = baseMethods[path.shift()]
-  let methodName = path[path.length - 1]
+  const base = baseMethods[path.shift()]
 
-  base.prototype[methodName] = function (params = {}) {
+  set(base.prototype, path, function(params = {}) {
     let errors = []
     requiredParams.forEach(({ name, description }) => {
       if (!this.config[name] && !params[name]) {
@@ -131,7 +132,7 @@ commands.forEach(command => {
     }
     this.config.Command = 'namecheap.' + command
     return this.request(params)
-  }
+  })
 })
 
 module.exports = {
